@@ -14,7 +14,7 @@ Contact me at matt.tudball@bristol.ac.uk if you have any questions.
 * `bmi_sys_example.do`: Generating estimates from various cut-offs in the BMI and systolic blood pressure example.
 
 ### Figures and tables
-* `bmi_sys_example.R`: `Generates Figure 3.
+* `bmi_sys_example.R`: Generates Figure 3.
 * `example_pasman.R`: Generates Figure 4.
 * `example_richardson.R`: Generates Figure 5.
 * `assumptions_sim.R`: Generates Tables 1 and 2.
