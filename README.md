@@ -2,6 +2,7 @@
 
 This is the replication kit to reproduce the results in this paper.
 Contact me at matt.tudball@bristol.ac.uk if you have any questions.
+Access to the full genetic and phenotype data from UK Biobank waves 1 and 2 is required to replicate Figures 3 and 5.
 
 ## Description of Files
 
