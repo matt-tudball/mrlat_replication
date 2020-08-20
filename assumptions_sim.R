@@ -24,7 +24,7 @@ estimator <- function(DATA,est='probit',theta=1) {
 
 # Simulation parameters
 alpha0 <- 0; alphaz <- 1; alphax <- -1
-beta0 <- 0; betal <- 1; betax <- 1; betav <- 1
+beta0 <- 0; betal <- 1; betax <- 0.2; betav <- 0.2
 
 # Exponential distribution parameters
 lambda <- 0.5; varX <- 1/lambda^2
@@ -33,30 +33,30 @@ lambda <- 0.5; varX <- 1/lambda^2
 loc <- 0; scale <- 1
 
 # Theta^2: share of variation in total liability which is genetic
-theta <- 0.05
+theta <- 0.1
 
 # Share of variance in G from instrument
-s <- 0.2
+s <- 0.4
 
 # Sample size of N, Number of simulation samples of nruns
-N <- 5000; nruns <- 1000
+N <- 1000; nruns <- 1000
 
-a <- 0
-b <- c(0,0.1,0.25,0.5,1)
+a <- c(0,1,2,3,4,5)
+b <- 0 # c(0,0.1,0.25,0.5,1)
 grid <- as.matrix(expand.grid(a,b))
 ng <- NROW(grid)
 
-sim_output <- matrix(nrow=ng,ncol=5)
-colnames(sim_output) <- c('a','b','probit','np','logit')
-sim_output[,c('a','b')] <- grid
+simout <- as.data.frame(matrix(nrow=ng,ncol=8))
+colnames(simout) <- c('a','b','p','p_se', 'n', 'n_se', 'l', 'l_se')
+simout[,c('a','b')] <- grid
 
-for (gridval in 1:ng) {
+for (gval in 1:ng) {
   sim_track <- matrix(nrow=nruns,ncol=3)
-  colnames(sim_track) <- c('probit','np','logit')
+  colnames(sim_track) <- c('p','n','l')
   
   # Simulation parameters for this run
-  a <- sim_output[gridval,'a']
-  b <- sim_output[gridval,'b']
+  a <- simout[gval,'a']
+  b <- simout[gval,'b']
   
   varV <- scale^2*(1-2*(a^2/(1+a^2))/pi)
   
@@ -79,20 +79,23 @@ for (gridval in 1:ng) {
     Y <- beta0 + betal*L + betax*X + betav*V + rnorm(N,0,1)
     
     DATA <- data.frame(Z,X,D,Y)
-    sim_track[k,'probit'] <- estimator(DATA,est='probit',theta=theta)
-    sim_track[k,'np'] <- estimator(DATA,est='np',theta=theta)
-    sim_track[k,'logit'] <- estimator(DATA,est='logit',theta=theta)
+    sim_track[k,'p'] <- estimator(DATA,est='probit',theta=theta)
+    sim_track[k,'n'] <- estimator(DATA,est='np',theta=theta)
+    sim_track[k,'l'] <- estimator(DATA,est='logit',theta=theta)
     
-    if (k%%1 == 0) print(paste("Iteration: ",k, " --- Probit: ", round(median(sim_track[,'probit'], na.rm=T),3),
-                                " --- Non-parametric: ", round(median(sim_track[,'np'], na.rm=T),3),
-                                " --- Logit: ", round(median(sim_track[,'logit'], na.rm=T),3), sep=""))
+    if (k%%1 == 0) cat(paste("Parameter ", gval, ", Iteration ",k, "\n   Probit: ", round(mean(sim_track[,'p'], na.rm=T)/betal,3),
+                         "\n   Non-parametric: ", round(mean(sim_track[,'n'], na.rm=T)/betal,3),
+                         "\n   Logit: ", round(mean(sim_track[,'l'], na.rm=T)/betal,3), "\n", sep=""))
+
   }
-  sim_output[gridval,c('probit','np','logit')] <- c(100*abs((median(sim_track[,'probit'])-betal)/betal),
-                         100*abs((median(sim_track[,'np'])-betal)/betal),
-                         100*abs((median(sim_track[,'logit'])-betal)/betal))
+  simout[gval,c('p','p_se','n','n_se','l','l_se')] <- 
+    c(mean(sim_track[,'p'])/betal, sqrt(var(sim_track[,'p'])/nruns),
+      mean(sim_track[,'n'])/betal, sqrt(var(sim_track[,'p'])/nruns),
+      mean(sim_track[,'l'])/betal, sqrt(var(sim_track[,'p'])/nruns))
   
-  print(paste("Probit 95% CI: [", round(quantile(sim_track[,'probit'],0.025),3), ", ", 
-              round(quantile(sim_track[,'probit'],0.975),3), "] -- Logit 95% CI: [",
-              round(quantile(sim_track[,'logit'],0.025),3), ", ", 
-              round(quantile(sim_track[,'logit'],0.975),3), "]", sep=""))
+  cat(paste(
+    "Probit 95% CI: [", round(simout$p[gval] - 1.96*simout$p_se[gval],3), ", ", round(simout$p[gval] + 1.96*simout$p_se[gval],3), "] \n",
+    "Non-parametric 95% CI: [", round(simout$n[gval] - 1.96*simout$n_se[gval],3), ", ", round(simout$n[gval] + 1.96*simout$n_se[gval],3), "] \n",
+    "Logit 95% CI: [", round(simout$l[gval] - 1.96*simout$l_se[gval],3), ", ", round(simout$l[gval] + 1.96*simout$l_se[gval],3), "] \n", sep="")
+  )
 }
